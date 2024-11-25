@@ -9,22 +9,24 @@ data {
 // I'm reparameterizing the beta distribution to use mean and count
 
 parameters {
-  real<lower=0, upper=1> phi;
+  real<lower=0, upper=1> mu;
   real<lower=0.1> lambda;
+  real<lower=0> alpha2;
+  real<lower=0> beta2;
 }
 
 transformed parameters {
-  real<lower=0> alpha = lambda * phi;
-  real<lower=0> beta = lambda * (1-phi);
+  real<lower=0> alpha = lambda * mu;
+  real<lower=0> beta = lambda * (1-mu);
 }
 
 
 model {
-  phi ~ beta(1, 1);
+  mu ~ beta(1, 1);
   lambda ~ pareto(0.1, 1.5);
   
-  for (n in 1:N){
-    y[n] ~ beta(alpha, beta);
-  }
+  mu ~ beta(alpha2, beta2);
+  y ~ beta(alpha, beta);
+  
 }
 

@@ -11,8 +11,15 @@ pacman::p_load(tidyverse, here, rstan)
 
 Making some fake data to test that I have a beta regression working
 
+probably actually needs to be: 
+- subsample (observer) samples from a bernoulli distribution with probability theta
+- theta is drawn from a beta distribution
+
 ```{r}
-y_fake<-rbeta(100, 1, 1000)
+fake_trip<-rbeta(100, 1, 1000)
+
+subSample<-
+
 hist(y_fake)
 
 N<-length(y_fake)
