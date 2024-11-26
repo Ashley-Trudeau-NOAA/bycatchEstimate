@@ -18,7 +18,7 @@ Questions:
 set.seed(293)
 V<-20
 
-prob_rhs_total<-0.1
+prob_rhs_total<-0.01
 prob_rhs_trip<-data.frame(VV=1:V, prob_rhs_trip = rbeta(V, V*prob_rhs_total, V*(1-prob_rhs_total)))
 # this will have to be a function
 
@@ -42,16 +42,23 @@ fake.df<-data.frame(VV=c(1:V),
   uncount(nFish)%>%
   rowwise()%>%
   mutate(RHS=rbinom(n=1, size=1, prob=prob_rhs_bucket))%>%
-  ungroup()
+  ungroup()%>%
+  # sum for binomial distribution (rather than bernoulli)
+  # leave out baskets for now until I get simpler model running
+  group_by(VV, BB)%>%
+  summarize(nFish=n(),
+            nRHS=sum(RHS))
 
 
 data.list<-list(N=nrow(fake.df),
                 V=max(fake.df$VV),
-                B=length(unique(paste(fake.df$VV, fake.df$BB, sep="_"))),
+                #B=length(unique(paste(fake.df$VV, fake.df$BB, sep="_"))),
                 VV=fake.df$VV,
-                NB=fake.df$NB,
-                BB=fake.df$BB,
-                y=fake.df$RHS
+               # NB=fake.df$NB,
+              #  BB=fake.df$BB,
+              # nFish is the number of "trials" for the binomial draws
+                nFish=fake.df$nFish,
+                y=fake.df$nRHS
                 )
 ```
 
@@ -70,7 +77,9 @@ Why was initialization between -2 and 2?
 
 - separating step of estimating alpha and beta parameters? (see handbook)
 
-- reduced model complexity--
+- reduced model complexity--observers now draw straight from trip catch rather than bucket
+
+- interestingly, adding upper bound on p_rhs_trip largely addressed initialization problem. There were a couple of rejected initial values and a warning error, I think about model run time? Note that this run was successful. Still had big problem with divergent transitions, chain mixing, low ESS
 
 ```{r}
 fit<-stan(file="reducedBycatchModel.stan",
