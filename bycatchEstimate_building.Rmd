@@ -9,23 +9,50 @@ knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load(tidyverse, here, rstan)
 ```
 
-Making some fake data to test that I have a beta regression working
+Making some fake data 
 
-probably actually needs to be: 
-- subsample (observer) samples from a bernoulli distribution with probability theta
-- theta is drawn from a beta distribution
+Questions:
+- How many subsamples do observers take? How large are those baskets/how many herring+bycatch should I expect to be in there? 
 
 ```{r}
-fake_trip<-rbeta(100, 1, 1000)
+set.seed(293)
+V<-20
 
-subSample<-
+prob_rhs_total<-0.01
+prob_rhs_trip<-data.frame(VV=1:V, prob_rhs_trip = rbeta(V, V*prob_rhs_total, V*(1-prob_rhs_total)))
+# this will have to be a function
 
-hist(y_fake)
 
-N<-length(y_fake)
+# as a fake example, we have 20 observed trips, each with between 1 and 10 bucket samples
+fake.df<-data.frame(VV=c(1:V),
+                    NB=sample(c(1:10), 20, replace=T))%>%
+  mutate(expand=NB)%>%
+  # expand rows by NB
+  uncount(expand)%>%
+  group_by(VV)%>%
+  mutate(BB=row_number())%>%
+  ungroup()%>%
+  left_join(prob_rhs_trip, by="VV")%>%
+  rowwise()%>%
+  mutate(prob_rhs_bucket=rbeta(1, NB*prob_rhs_trip, NB*(1-prob_rhs_trip)),
+         nFish=sample(c(50:75), 1, replace=TRUE))%>%
+  ungroup()%>%
+  # now add nfish sampled and expand for bernoulli draws
+  # I don't know the size of thes baskets; for now I'll assume there are 50-75 fish in each one
+  uncount(nFish)%>%
+  rowwise()%>%
+  mutate(RHS=rbinom(n=1, size=1, prob=prob_rhs_bucket))%>%
+  ungroup()
 
-data.list<-list(y=y_fake,
-                N=N)
+
+data.list<-list(N=nrow(fake.df),
+                V=max(fake.df$VV),
+                B=length(unique(paste(fake.df$VV, fake.df$BB, sep="_"))),
+                VV=fake.df$VV,
+                NB=fake.df$NB,
+                BB=fake.df$BB,
+                y=fake.df$RHS
+                )
 ```
 
 Fit model
@@ -33,7 +60,10 @@ Fit model
 ```{r}
 fit<-stan(file="bycatchModel.stan",
           data=data.list,
-          chains=4)
+          warmup=1000,
+          iter=3000,
+          chains=1,
+          cores=4)
 
 post<-extract(fit)
 

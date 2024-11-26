@@ -3,16 +3,14 @@
 data {
 // N is the total number of observer samples (of individual fish--is it RHS or not) across all trips
   int<lower=0> N;
-  // Bmax is the max number of observer buckets within trips
 // Need to nest B within V 
-  int<lower=0> Bmax;
   // total number of buckets in dataset
   int<lower=0> B;
   // BB is an index of buckets
   array[N] int<lower=0> BB;
   // NB is the count of buckets within trips
   array[N] int<lower=0> NB;
-// V is the number of vessel trips (reserving T for time steps later)
+// V is the number of observed vessel trips (reserving T for time steps later)
   int<lower=0> V;
   array[N] int<lower=0, upper=V> VV;
 // y is a bernoulli draw, RHS or not (1,0)
@@ -27,7 +25,7 @@ parameters {
   // (trip probability could be affected by time, vessel)
   vector[V] p_rhs_trip;
   // there is some final estimated probability of RHS catch for the year/stratum
-  real<lower=0, upper=1> p_rhs_total;
+  real p_rhs_total;
   
 }
 
