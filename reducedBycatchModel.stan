@@ -14,8 +14,6 @@ data {
 
 parameters {
   
-  // alpha and beta parameters 
-  
   // each trip has some probability of RHS that is drawn from the total distribution
   // (trip probability could be affected by time, vessel)
   vector[V] p_rhs_trip;
@@ -24,6 +22,12 @@ parameters {
   
 }
 
+transformed parameters {
+  // alpha and beta are functions of p_rhs_total and sample size (number of trips sampled)
+    real<lower=0> alpha = V * p_rhs_total;
+    real<lower=0> beta = V * (1-p_rhs_total);
+
+}
 
 model {
   // reparameterized beta distribution to use mean probability and count in place
@@ -35,7 +39,7 @@ model {
   
   // trips within total catch
   for(i in 1:N){
-  p_rhs_trip[VV[i]] ~ beta(V * p_rhs_total, V * (1-p_rhs_total));
+  p_rhs_trip[VV[i]] ~ beta(alpha, beta);
   }
   
   for(i in 1:N){

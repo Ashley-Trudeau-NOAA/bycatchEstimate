@@ -18,7 +18,7 @@ Questions:
 set.seed(293)
 V<-20
 
-prob_rhs_total<-0.001
+prob_rhs_total<-0.1
 prob_rhs_trip<-data.frame(VV=1:V, prob_rhs_trip = rbeta(V, V*prob_rhs_total, V*(1-prob_rhs_total)))
 # this will have to be a function
 
@@ -69,6 +69,8 @@ this didn't work
 Why was initialization between -2 and 2? 
 
 - separating step of estimating alpha and beta parameters? (see handbook)
+
+- reduced model complexity--
 
 ```{r}
 fit<-stan(file="reducedBycatchModel.stan",

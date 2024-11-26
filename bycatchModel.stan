@@ -39,7 +39,7 @@ model {
   
   // vague prior for p_rhs_total (to be estimated) can be more informative later
   // trying very informative prior
-  p_rhs_total ~ beta(1,1000);
+  p_rhs_total ~ beta(1,1);
   
   // trips within total catch
   for(i in 1:N){
