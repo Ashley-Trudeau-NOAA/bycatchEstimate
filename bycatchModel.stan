@@ -6,10 +6,12 @@ data {
   // Bmax is the max number of observer buckets within trips
 // Need to nest B within V 
   int<lower=0> Bmax;
+  // total number of buckets in dataset
+  int<lower=0> B;
   // BB is an index of buckets
-  array[N] int<lower=0, upper=Bmax> BB;
+  array[N] int<lower=0> BB;
   // NB is the count of buckets within trips
-  array[N] int<lower=0, upper=Bmax> NB;
+  array[N] int<lower=0> NB;
 // V is the number of vessel trips (reserving T for time steps later)
   int<lower=0> V;
   array[N] int<lower=0, upper=V> VV;
@@ -20,10 +22,10 @@ data {
 
 parameters {
   // each bucket has some probability of RHS that is drawn from the trip distribution
-  vector[B]<lower=0, upper=1> p_rhs_bucket;
+  vector[B] p_rhs_bucket;
   // each trip has some probability of RHS that is drawn from the total distribution
   // (trip probability could be affected by time, vessel)
-  vector[V]<lower=0, upper=1> p_rhs_trip;
+  vector[V] p_rhs_trip;
   // there is some final estimated probability of RHS catch for the year/stratum
   real<lower=0, upper=1> p_rhs_total;
   
