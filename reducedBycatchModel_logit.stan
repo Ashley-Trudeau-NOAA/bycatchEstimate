@@ -19,18 +19,17 @@ parameters {
   
   // each trip has some probability of RHS that is drawn from the total distribution
   // (trip probability could be affected by time, vessel)
-  vector<lower=0, upper=1>[V] p_rhs_trip;
+  //vector<lower=0, upper=1>[V] p_rhs_trip;
   // there is some final estimated probability of RHS catch for the year/stratum
-  real<lower=0, upper=1> p_rhs_total;
-  real<lower=1> kappa; // "population concentration"
+  //real<lower=0, upper=1> p_rhs_total;
+  //real<lower=1> kappa; // "population concentration"
+  
+  real logit_rhs_total;
+  vector[V] logit_rhs_trip;
+  real<lower=0> sigma_total;
+  
 }
 
-//transformed parameters {
-  // alpha and beta are functions of p_rhs_total and sample size (number of trips sampled)
-   // real<lower=0> alpha = kappa * p_rhs_total;
-   // real<lower=0> beta = kappa * (1-p_rhs_total);
-
-//}
 
 model {
   // reparameterized beta distribution to use mean probability and count in place
@@ -38,20 +37,25 @@ model {
   
   // vague prior for p_rhs_total (to be estimated) can be more informative later
   // trying very informative prior
-  p_rhs_total ~ beta(1,1);
-  kappa ~ pareto(1, 1.5);
+  //p_rhs_total ~ beta(1,1);
+  //kappa ~ pareto(1, 1.5);
   
-
-  // trips within total catch
+  logit_rhs_total ~ normal(0,1);
+  sigma_total ~ normal(0,1);
+  
   for(i in 1:N){
-  p_rhs_trip[VV[i]] ~ beta(kappa * p_rhs_total, kappa * (1-p_rhs_total));
+  logit_rhs_trip[VV[i]] ~ normal(logit_rhs_total, sigma_total);
   }
-  
+
   for(i in 1:N){
     // observer draws nested within trips
-  y[i] ~ binomial(nFish, p_rhs_trip[VV[i]]);
+  y[i] ~ binomial_logit(nFish, logit_rhs_trip[VV[i]]);
   }
   
 
 }
 
+generated quantities{
+  real prob_rhs_total;
+  prob_rhs_total = inv_logit(logit_rhs_total);
+}
