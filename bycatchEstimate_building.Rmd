@@ -18,7 +18,7 @@ Questions:
 set.seed(293)
 V<-20
 
-prob_rhs_total<-0.01
+prob_rhs_total<-0.001
 prob_rhs_trip<-data.frame(VV=1:V, prob_rhs_trip = rbeta(V, V*prob_rhs_total, V*(1-prob_rhs_total)))
 # this will have to be a function
 
@@ -57,8 +57,21 @@ data.list<-list(N=nrow(fake.df),
 
 Fit model
 
+Troubleshooting options: 
+- informative prior: tried this an dhad same problem. log probability at initial value is out of range. (example: Rejecting initial value:
+Chain 1:   Error evaluating the log probability at the initial value.
+Chain 1: Exception: beta_lpdf: Random variable is 1.57918, but must be in the interval [0, 1] (in 'string', line 36, column 2 to column 29))
+
+- try higher (simulated) probability of RHS, maybe it's having trouble estimating a small value
+this didn't work
+
+- set initial values?
+Why was initialization between -2 and 2? 
+
+- separating step of estimating alpha and beta parameters? (see handbook)
+
 ```{r}
-fit<-stan(file="bycatchModel.stan",
+fit<-stan(file="reducedBycatchModel.stan",
           data=data.list,
           warmup=1000,
           iter=3000,

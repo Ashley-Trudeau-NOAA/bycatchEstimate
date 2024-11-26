@@ -1,15 +1,9 @@
 // First pass starting 11/25/24
-// Starting with a basic estimation model for proportion RHS based on one sample from a known population size
+// second pass, taking one step back, only one nested level
+// observer observations are drawn straight from vessel catch, not doing buckets
 data {
 // N is the total number of observer samples (of individual fish--is it RHS or not) across all trips
   int<lower=0> N;
-// Need to nest B within V 
-  // total number of buckets in dataset
-  int<lower=0> B;
-  // BB is an index of buckets
-  array[N] int<lower=0> BB;
-  // NB is the count of buckets within trips
-  array[N] int<lower=0> NB;
 // V is the number of observed vessel trips (reserving T for time steps later)
   int<lower=0> V;
   array[N] int<lower=0, upper=V> VV;
@@ -22,8 +16,6 @@ parameters {
   
   // alpha and beta parameters 
   
-  // each bucket has some probability of RHS that is drawn from the trip distribution
-  vector[B] p_rhs_bucket;
   // each trip has some probability of RHS that is drawn from the total distribution
   // (trip probability could be affected by time, vessel)
   vector[V] p_rhs_trip;
@@ -44,10 +36,6 @@ model {
   // trips within total catch
   for(i in 1:N){
   p_rhs_trip[VV[i]] ~ beta(V * p_rhs_total, V * (1-p_rhs_total));
-  }
-  // buckets nested within trips
-  for(i in 1:N){
-    p_rhs_bucket[BB[i]] ~ beta(NB[i] * p_rhs_trip, NB[i] * (1-p_rhs_trip));
   }
   
   for(i in 1:N){
