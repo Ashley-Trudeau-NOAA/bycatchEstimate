@@ -12,6 +12,8 @@ data {
   array[N] int<lower=0, upper=V> VV;
 // y is a bernoulli draw, RHS or not (1,0)
   array[N] int<lower=0> y;
+  // remember 
+  real totalCatch;
   
 }
 

@@ -1,5 +1,6 @@
 // First pass starting 11/25/24
 // Starting with a basic estimation model for proportion RHS based on one sample from a known population size
+
 data {
 // N is the total number of observer samples (of individual fish--is it RHS or not) across all trips
   int<lower=0> N;
@@ -15,31 +16,54 @@ data {
   array[N] int<lower=0, upper=V> VV;
 // y is a bernoulli draw, RHS or not (1,0)
   array[N] int<lower=0, upper=1> y;
-  
+  array[N] int<lower=0> nFish;
+
 }
 
 parameters {
   
-  // alpha and beta parameters 
-  
-  // each bucket has some probability of RHS that is drawn from the trip distribution
-  vector[B] p_rhs_bucket;
-  // each trip has some probability of RHS that is drawn from the total distribution
-  // (trip probability could be affected by time, vessel)
-  vector[V] p_rhs_trip;
   // there is some final estimated probability of RHS catch for the year/stratum
-  real<lower=0> p_rhs_total;
-  
+  real logit_rhs_total;
+  real<lower=0> sigma_total;
+  // each trip has some probability of RHS that is drawn from the total distribution. 
+  // this mean probability could vary over time and/or by vessel with additional parameters
+  // gear/area covariates could be added so that data can be shared across strata
+  vector[V] logit_rhs_trip;
+  vector<lower=0>[V] sigma_trip;
+  // each bucket has some probability of RHS that is drawn from the trip distribution
+  vector[B] logit_rhs_bucket;
+  vector<lower=0>[V] sigma_bucket;
+
 }
 
 
 model {
-  // reparameterized beta distribution to use mean probability and count in place
-  // of alpha and beta (rstan handbook)
+
   
   // vague prior for p_rhs_total (to be estimated) can be more informative later
-  // trying very informative prior
+  // In actual use, priors could be estimates from the previous year/stratum
   p_rhs_total ~ beta(1,1);
+  
+  logit_rhs_total ~ normal(0,1);
+  sigma_total ~ normal(0,1);
+  
+  // some help for nesting syntax https://stackoverflow.com/questions/29379001/nested-model-in-stan 
+  // this is where I left off 11/26
+  for(i in 1:N){
+  logit_rhs_trip[VV[i]] ~ normal(logit_rhs_total, sigma_total);
+  }
+  
+  for(i in 1:N){
+    logit_rhs_bucket[BB[i]]
+  }
+
+  for(i in 1:N){
+    // observer draws nested within trips
+  y[i] ~ binomial_logit(nFish, logit_rhs_trip[VV[i]]);
+  }
+
+  
+  
   
   // trips within total catch
   for(i in 1:N){
