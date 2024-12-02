@@ -43,6 +43,9 @@ model {
   logit_rhs_total ~ normal(0,1);
   sigma_total ~ normal(0,1);
   
+  // model specification really needs zero inflation (probably), won't currently predict 
+  // any zero-RHS trips
+  
   // log odds RHS by trip could be predicted by permit, area, season, vessel, and/or
   // previous years' bycatch (options: trend, random walk, year effect, ARIMA)
   for(i in 1:N){
@@ -61,4 +64,7 @@ generated quantities{
   real prob_rhs_total;
   prob_rhs_total = inv_logit(logit_rhs_total);
   // can estimate total RHS catch with error in this block as prob_rhs_total * yearsCatch
+  
+  // when there are covariates, I think it would need to instead predict prob_rhs by stratum
+  // and season for that year
 }
