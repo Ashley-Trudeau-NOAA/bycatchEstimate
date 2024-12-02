@@ -13,20 +13,49 @@ Making some fake data
 
 Questions:
 - How many subsamples do observers take? How large are those baskets/how many herring+bycatch should I expect to be in there? 
+They aim for 10 samples, but can be higher or lower
+
+https://www.nafo.int/Portals/0/PDFs/fc/proc/USA_2021ObserverOperationsManual.pdf
+
+based on observer operations manual from 2021, observers record the weight of each species in each basket and the baskets' total weight
+
+Thoughts after first pass: 
+- Raw data is in pounds to nearest tenth, not numbers
+- Probability/proportion RHS needs to be zero inflated
+- I'm not sure it will even run with dependent values this high. 
+
+Trying round (without zero inflation) to see
+
+- The model still fits with fake data. 
 
 ```{r}
 set.seed(29)
 V<-20
 
 prob_rhs_total<-0.01
+prob_sigma<-0.01
 
-prob_rhs_trip<-data.frame(VV=1:V, prob_rhs_trip = rbeta(V, V*prob_rhs_total, V*(1-prob_rhs_total)))
-# this will have to be a function
+alpha_fun<-function(mu, sigma){
+  (((1-mu)/sigma^2)-(1/mu))*mu^2
+}
 
+beta_fun<-function(alpha, mu, sigma){
+  alpha*((1/mu)-1)
+}
 
-# as a fake example, we have 20 observed trips, each with between 1 and 10 bucket samples
+alpha<-alpha_fun(prob_rhs_total, prob_sigma)
+beta<-beta_fun(alpha, prob_rhs_total, prob_sigma)
+
+prob_rhs_trip<-data.frame(VV=1:V, prob_rhs_trip = rbeta(V, alpha, beta))
+
+total_catch_lbs<-round(rnorm(V, mean=50000, sd=10000), 1)
+# abusing the binomial distribution, calling tenth of a pound estimates an integer..
+total_catch_10th_lbs<-total_catch_lbs*10
+
+# as a fake example, we have 20 observed trips, each with between 8 and 15 bucket samples
 fake.df<-data.frame(VV=c(1:V),
-                    NB=sample(c(1:10), 20, replace=T))%>%
+                    NB=sample(c(8:15), 20, replace=T),
+                    total_catch_10th_lbs=total_catch_10th_lbs)%>%
   mutate(expand=NB)%>%
   # expand rows by NB
   uncount(expand)%>%
@@ -34,21 +63,15 @@ fake.df<-data.frame(VV=c(1:V),
   mutate(BB=row_number())%>%
   ungroup()%>%
   left_join(prob_rhs_trip, by="VV")%>%
+  mutate(trip_alpha=alpha_fun(prob_rhs_trip, 0.01),
+         trip_beta=beta_fun(trip_alpha, prob_rhs_trip, 0.01))%>%
   rowwise()%>%
-  mutate(prob_rhs_bucket=rbeta(1, NB*prob_rhs_trip, NB*(1-prob_rhs_trip)),
-         nFish=sample(c(50:75), 1, replace=TRUE))%>%
-  ungroup()%>%
-  # now add nfish sampled and expand for bernoulli draws
-  # I don't know the size of thes baskets; for now I'll assume there are 50-75 fish in each one
-  uncount(nFish)%>%
-  rowwise()%>%
-  mutate(RHS=rbinom(n=1, size=1, prob=prob_rhs_bucket))%>%
-  ungroup()%>%
+  # the problem with this approach is that it doesn't include zero RHS trips. Really want a zero-inflated beta
+  mutate(prop_RHS=rbeta(n=1, trip_alpha, trip_beta),
+         lbs_10th_RHS=round(total_catch_10th_lbs*prop_RHS))
   # sum for binomial distribution (rather than bernoulli)
   # leave out baskets for now until I get simpler model running
-  group_by(VV, BB)%>%
-  summarize(nFish=n(),
-            nRHS=sum(RHS))
+
 
 
 data.list<-list(N=nrow(fake.df),
@@ -58,9 +81,8 @@ data.list<-list(N=nrow(fake.df),
                # NB=fake.df$NB,
               #  BB=fake.df$BB,
               # nFish is the number of "trials" for the binomial draws
-                nFish=fake.df$nFish,
-                y=fake.df$nRHS,
-                totalCatch=sum(fake.df$nFish)
+                totalCatch=fake.df$total_catch_10th_lbs,
+                y=fake.df$lbs_10th_RHS
                 )
 ```
 
